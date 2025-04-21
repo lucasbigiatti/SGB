@@ -1,0 +1,107 @@
+TERMINADO
+
+
+GESTIONAR PRODUCTOS
+GESTIONAR PROMOCIONES
+Gestionar ventas casi tmb
+
+app frontend
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+import sys
+import os
+import mysql.connector
+
+
+
+# Conexión a la base de datos
+conexion = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="",
+    database="gestionbebidas"
+)
+
+
+
+
+
+# Agregamos esta función arriba antes de usarla
+def verificar_stock_bajo():
+    cursor = conexion.cursor()
+    cursor.execute("SELECT nombre, stock, stock_minimo FROM productos WHERE stock <= stock_minimo")
+    productos_bajo_stock = cursor.fetchall()
+
+    if productos_bajo_stock:
+        mensaje = "¡Atención! Los siguientes productos tienen bajo stock:\n\n"
+        for nombre, stock, minimo in productos_bajo_stock:
+            mensaje += f"- {nombre}: {stock} unidades (mínimo: {minimo})\n"
+        messagebox.showwarning("Stock Bajo", mensaje)
+
+# ------------------- VENTANA PRINCIPAL -----------------------
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from Ventanas.producto import abrir_gestion_productos
+from Ventanas.cliente import abrir_gestion_clientes
+from Ventanas.ventas import abrir_gestion_ventas
+from Ventanas.promocion import abrir_gestion_promociones
+from Ventanas.dashboard import mostrar_estadisticas
+
+
+
+# Colores personalizados
+COLOR_FONDO = "#2C2F33"
+COLOR_BOTON = "#7289DA"
+COLOR_TEXTO = "#FFFFFF"
+COLOR_BOTON_HOVER = "#99AAB5"
+# Función para cambiar el contenido de la ventana principal
+def mostrar_contenido(funcion):
+    for widget in root.winfo_children():
+        widget.destroy()
+    funcion(root)
+class App:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Gestión de Bebidas - LOS TIOS")
+        self.root.geometry("600x400")
+        self.root.configure(bg=COLOR_FONDO)
+
+        estilo = ttk.Style()
+        estilo.theme_use("default")
+        estilo.configure("TButton",
+                         background=COLOR_BOTON,
+                         foreground=COLOR_TEXTO,
+                         font=("Segoe UI", 12),
+                         padding=10)
+        estilo.map("TButton",
+                   background=[("active", COLOR_BOTON_HOVER)])
+
+        
+
+        # Cargar la imagen de fondo
+        self.titulo = tk.Label(self.root, text="Sistema de Gestión de Bebidas", font=("Segoe UI", 18, "bold"), bg=COLOR_FONDO, fg=COLOR_TEXTO)
+        self.titulo.pack(pady=30)
+
+        self.boton_productos = ttk.Button(self.root, text="Gestionar Productos", command=abrir_gestion_productos)
+        self.boton_productos.pack(pady=10)
+
+        self.boton_estadisticas = ttk.Button(self.root, text="Estadísticas", command=mostrar_estadisticas)
+        self.boton_estadisticas.pack(pady=10)
+
+        self.boton_ventas = ttk.Button(self.root, text="Registrar Ventas", command=abrir_gestion_ventas)
+        self.boton_ventas.pack(pady=10)
+
+        self.boton_promociones = ttk.Button(self.root, text="Gestionar Promociones", command=abrir_gestion_promociones)
+        self.boton_promociones.pack(pady=10)
+
+        self.marca_agua = tk.Label(self.root, text="Desarrollado por Lucas Bigiatti y Valentín Zunino",
+                                   font=("Segoe UI", 8), bg=COLOR_FONDO, fg=COLOR_TEXTO)
+        self.marca_agua.place(relx=0.01, rely=0.98, anchor="sw")
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = App(root)
+    verificar_stock_bajo()  # Llamamos la verificación antes de iniciar el loop
+    root.mainloop()

@@ -1,0 +1,44 @@
+PS C:\Users\lucas\Documents\DistriBebidas>  & 'c:\Users\lucas\Documents\DistriBebidas\.venv\Scripts\python.exe' 'c:\Users\lucas\.vscode\extensions\ms-python.debugpy-2025.4.1-win32-x64\bundled\libs\debugpy\launcher' '55600' '--' 'C:\Users\lucas\Documents\DistriBebidas\Backend\app.py'
+PS C:\Users\lucas\Documents\DistriBebidas>  c:; cd 'c:\Users\lucas\Documents\DistriBebidas'; & 'c:\Users\lucas\Documents\DistriBebidas\.venv\Scripts\python.exe' 'c:\Users\lucas\.vscode\extensions\ms-python.debugpy-2025.4.1-win32-x64\bundled\libs\debugpy\launcher' '55642' '--' 'C:\Users\lucas\Documents\DistriBebidas\Backend\app.py'
+undled\x5clibs\x5cdebugpy\x5clauncher' '55642' '--' 'C:\x5cUsers\x5clucas\x5cDocuments\x5cDistriBebidas\x5cBackend\x5capp.py' ;175ef6d2-5eb2-4dce-b370-042c09494e1cException in Tkinter callback
+Traceback (most recent call last):
+  File "c:\Users\lucas\Documents\DistriBebidas\.venv\Lib\site-packages\mysql\connector\connection_cext.py", line 755, in cmd_query
+    self._cmysql.query(
+    ~~~~~~~~~~~~~~~~~~^
+        query,
+        ^^^^^^
+    ...<3 lines>...
+        query_attrs=self.query_attrs,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+_mysql_connector.MySQLInterfaceError: Cannot add or update a child row: a foreign key constraint fails (`gestionbebidas`.`productos`, CONSTRAINT `productos_ibfk_1` FOREIGN KEY (`id_proveedor`) REFERENCES `proveedores` (`id_proveedor`))
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\lucas\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 2068, in __call__
+    return self.func(*args)
+           ~~~~~~~~~^^^^^^^
+  File "C:\Users\lucas\Documents\DistriBebidas\Backend\app.py", line 34, in agregar_producto
+    cursor.execute("INSERT INTO Productos (nombre, marca, precio, stock, id_proveedor) VALUES (%s, %s, %s, %s, 1)",
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                   (nombre, marca, precio, stock))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\lucas\Documents\DistriBebidas\.venv\Lib\site-packages\mysql\connector\cursor_cext.py", line 351, in execute
+    self._connection.cmd_query(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._stmt_partition["mappable_stmt"],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        raw_as_string=self._raw_as_string,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "c:\Users\lucas\Documents\DistriBebidas\.venv\Lib\site-packages\mysql\connector\opentelemetry\context_propagation.py", line 97, in wrapper
+    return method(cnx, *args, **kwargs)
+  File "c:\Users\lucas\Documents\DistriBebidas\.venv\Lib\site-packages\mysql\connector\connection_cext.py", line 763, in cmd_query
+    raise get_mysql_exception(
+        err.errno, msg=err.msg, sqlstate=err.sqlstate
+    ) from err
+mysql.connector.errors.IntegrityError: 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`gestionbebidas`.`productos`, CONSTRAINT `productos_ibfk_1` FOREIGN KEY (`id_proveedor`) REFERENCES `proveedores` (`id_proveedor`))
