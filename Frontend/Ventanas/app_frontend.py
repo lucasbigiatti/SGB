@@ -213,7 +213,7 @@ class App:
         self.root.after(100, forzar_foco)
         
         # Marca de agua
-        marca_agua = tk.Label(self.contenedor_principal, text="Desarrollado por Lucas Bigiatti y Valentín Zunino",
+        marca_agua = tk.Label(self.contenedor_principal, text="Desarrollado por Lucas Bigiatti",
                              font=("Segoe UI", 8), bg=COLOR_FONDO_PRINCIPAL, fg=COLOR_TEXTO_CLARO)
         marca_agua.place(relx=0.01, rely=0.98, anchor="sw")
 
