@@ -1,4 +1,3 @@
-# Ventanas/producto.py
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, scrolledtext
 import os
@@ -49,11 +48,32 @@ class GestionProductos:
         # Panel de tabla y filtro
         self.crear_panel_tabla()
         
+        # Panel de acciones adicionales
+        self.crear_panel_acciones()
+        
         # Actualizar tabla con datos iniciales
         self.actualizar_tabla()
         
+        # Verificar stock bajo solo al iniciar
+        self.verificar_stock_bajo()
+        
         # Establecer el foco en el primer campo de entrada
         self.entries[0].focus_set()
+    
+    def crear_panel_acciones(self):
+        """Crea un panel para acciones adicionales"""
+        frame_acciones = tk.Frame(self.panel_derecho, bg=COLOR_FONDO_SECUNDARIO, bd=1, relief=tk.GROOVE)
+        frame_acciones.pack(fill="x", pady=10)
+        
+        # Botón para verificar stock bajo
+        btn_verificar_stock = ttk.Button(
+            frame_acciones, 
+            text="Verificar Stock Bajo", 
+            command=self.verificar_stock_bajo
+        )
+        btn_verificar_stock.pack(side=tk.LEFT, padx=10, pady=5)
+        
+        # Puedes agregar más botones para otras acciones aquí
     
     def crear_panel_formulario(self):
         """Crea el panel de formulario con mejor estilo"""
@@ -133,7 +153,8 @@ class GestionProductos:
         ancho_etiqueta = 12  # Ancho fijo para etiquetas
         ancho_entrada = 25   # Ancho para entradas
         
-        labels = ["Nombre", "Marca", "Precio", "Stock", "Litros"]
+        # Agregamos "Stock Mínimo" a la lista de campos
+        labels = ["Nombre", "Marca", "Precio", "Stock", "Stock Mínimo", "Litros"]
         self.entries = []
         
         for i, texto in enumerate(labels):
@@ -146,7 +167,7 @@ class GestionProductos:
         
         # Sección para la imagen
         frame_imagen = tk.Frame(frame_parent, bg=COLOR_FONDO_SECUNDARIO)
-        frame_imagen.grid(row=6, column=0, columnspan=2, pady=10)
+        frame_imagen.grid(row=7, column=0, columnspan=2, pady=10)  # Cambiamos la fila a 7 por el nuevo campo
         
         tk.Label(frame_imagen, text="Imagen del Producto:", bg=COLOR_FONDO_SECUNDARIO, fg=COLOR_TEXTO_CLARO,
                 font=("Segoe UI", 10, "bold")).pack(anchor="w", pady=(0, 5))
@@ -169,7 +190,8 @@ class GestionProductos:
     
     def crear_tabla(self):
         """Crea la tabla con mejor estilo"""
-        columnas = ("ID", "Nombre", "Marca", "Precio", "Stock", "Litros", "Imagen")
+        # Añadimos "Stock Mínimo" a las columnas
+        columnas = ("ID", "Nombre", "Marca", "Precio", "Stock", "Stock Mínimo", "Litros", "Imagen")
         self.tabla_productos = ttk.Treeview(self.frame_tabla, 
                                           columns=columnas, 
                                           show="headings", 
@@ -248,7 +270,8 @@ class GestionProductos:
         
         try:
             cursor = self.conexion.cursor()
-            cursor.execute("SELECT id_producto, nombre, marca, precio, stock, litros, imagen FROM Productos")
+            # Actualizado para incluir stock_minimo
+            cursor.execute("SELECT id_producto, nombre, marca, precio, stock, stock_minimo, litros, imagen FROM Productos")
             productos = cursor.fetchall()
             
             for producto in productos:
@@ -256,8 +279,30 @@ class GestionProductos:
                 
             # Actualizar estado
             self.label_estado.config(text=f"Mostrando todos los productos ({len(productos)} encontrados)")
+            
+            # Eliminamos la verificación automática de stock bajo
+            # para que solo se ejecute al iniciar o al pulsar el botón
+            
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo cargar la tabla: {e}")
+    
+    def verificar_stock_bajo(self):
+        """Verifica productos con stock bajo y muestra alerta"""
+        try:
+            cursor = self.conexion.cursor()
+            cursor.execute("SELECT nombre, stock, stock_minimo FROM Productos WHERE stock <= stock_minimo")
+            productos_bajo_stock = cursor.fetchall()
+
+            if productos_bajo_stock:
+                mensaje = "¡Atención! Los siguientes productos tienen bajo stock:\n\n"
+                for nombre, stock, minimo in productos_bajo_stock:
+                    mensaje += f"- {nombre}: {stock} unidades (mínimo: {minimo})\n"
+                messagebox.showwarning("Stock Bajo", mensaje)
+            else:
+                # Mostrar mensaje cuando no hay productos con stock bajo
+                messagebox.showinfo("Stock", "Todos los productos tienen niveles de stock adecuados.")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo verificar el stock bajo: {e}")
     
     def filtrar_productos(self):
         """Filtra productos por nombre o marca con mejor feedback"""
@@ -272,8 +317,9 @@ class GestionProductos:
         
         try:
             cursor = self.conexion.cursor()
+            # Actualizado para incluir stock_minimo
             cursor.execute("""
-                SELECT id_producto, nombre, marca, precio, stock, litros, imagen 
+                SELECT id_producto, nombre, marca, precio, stock, stock_minimo, litros, imagen 
                 FROM Productos 
                 WHERE nombre LIKE %s OR marca LIKE %s
             """, (f"%{filtro}%", f"%{filtro}%"))
@@ -293,7 +339,8 @@ class GestionProductos:
         marca = self.entries[1].get().strip()
         precio = self.entries[2].get().strip()
         stock = self.entries[3].get().strip()
-        litros = self.entries[4].get().strip()
+        stock_minimo = self.entries[4].get().strip()  # Nuevo campo
+        litros = self.entries[5].get().strip()  # Ahora es el 6to campo
         imagen_path = self.label_imagen.cget("text")
         
         # Validar campos con mensajes más específicos
@@ -308,6 +355,11 @@ class GestionProductos:
         if not stock or not stock.isdigit():
             messagebox.showerror("Error", "Debe ingresar una cantidad de stock válida")
             return
+        
+        # Validar stock mínimo
+        if not stock_minimo or not stock_minimo.isdigit():
+            messagebox.showerror("Error", "Debe ingresar una cantidad de stock mínimo válida")
+            return
             
         if not litros or not litros.replace('.', '', 1).isdigit():
             messagebox.showerror("Error", "Debe ingresar una cantidad de litros válida")
@@ -316,6 +368,12 @@ class GestionProductos:
         if imagen_path == "No se ha seleccionado imagen":
             messagebox.showerror("Error", "Debe seleccionar una imagen para el producto")
             return
+        
+        # Advertencia si el stock es menor que el stock mínimo
+        if int(stock) <= int(stock_minimo):
+            if not messagebox.askyesno("Advertencia de Stock", 
+                                     f"El stock inicial ({stock}) es igual o menor que el stock mínimo ({stock_minimo}). ¿Desea continuar?"):
+                return
         
         # Guardar imagen con mejor manejo de errores
         imagen_destino = os.path.join("imagenes", os.path.basename(imagen_path))
@@ -330,10 +388,11 @@ class GestionProductos:
         # Guardar producto en la base de datos
         try:
             cursor = self.conexion.cursor()
+            # Actualizado para incluir stock_minimo
             cursor.execute("""
-                INSERT INTO Productos (nombre, marca, precio, stock, litros, imagen) 
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (nombre, marca, precio, stock, litros, imagen_destino))
+                INSERT INTO Productos (nombre, marca, precio, stock, stock_minimo, litros, imagen) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (nombre, marca, precio, stock, stock_minimo, litros, imagen_destino))
             self.conexion.commit()
             
             # Mostrar confirmación visual
@@ -348,6 +407,9 @@ class GestionProductos:
                    font=("Segoe UI", 12), bg=COLOR_ACENTO, fg=COLOR_TEXTO_CLARO).pack(pady=2)
                    
             tk.Label(frame_confirmacion, text=f"Precio: ${precio}",
+                   font=("Segoe UI", 12), bg=COLOR_ACENTO, fg=COLOR_TEXTO_CLARO).pack(pady=2)
+            
+            tk.Label(frame_confirmacion, text=f"Stock: {stock} (Mínimo: {stock_minimo})",
                    font=("Segoe UI", 12), bg=COLOR_ACENTO, fg=COLOR_TEXTO_CLARO).pack(pady=2)
                    
             # Botón para cerrar la confirmación
@@ -385,7 +447,7 @@ class GestionProductos:
         tk.Label(frame_confirmar, text=f"{producto[1]} - {producto[2]}",
                font=("Segoe UI", 12), bg=COLOR_FONDO_SECUNDARIO, fg=COLOR_RESALTE).pack(pady=2)
                
-        tk.Label(frame_confirmar, text=f"Precio: ${producto[3]} | Stock: {producto[4]}",
+        tk.Label(frame_confirmar, text=f"Precio: ${producto[3]} | Stock: {producto[4]} | Mínimo: {producto[5]}",
                font=("Segoe UI", 12), bg=COLOR_FONDO_SECUNDARIO, fg=COLOR_TEXTO_CLARO).pack(pady=2)
                
         frame_botones_confirm = tk.Frame(frame_confirmar, bg=COLOR_FONDO_SECUNDARIO)
@@ -430,15 +492,16 @@ class GestionProductos:
         # Limpiar campos
         self.limpiar_campos()
         
-        # Cargar datos en formulario
+        # Cargar datos en formulario (ahora con stock_minimo)
         self.entries[0].insert(0, producto[1])  # Nombre
         self.entries[1].insert(0, producto[2])  # Marca
         self.entries[2].insert(0, producto[3])  # Precio
         self.entries[3].insert(0, producto[4])  # Stock
-        self.entries[4].insert(0, producto[5])  # Litros
+        self.entries[4].insert(0, producto[5])  # Stock Mínimo
+        self.entries[5].insert(0, producto[6])  # Litros
         
-        self.label_imagen.config(text=producto[6])  # Ruta imagen
-        self.mostrar_vista_previa(producto[6])
+        self.label_imagen.config(text=producto[7])  # Ruta imagen
+        self.mostrar_vista_previa(producto[7])
         
         # Cambiar botones con mejor estilo
         for widget in self.frame_botones.winfo_children():
@@ -468,7 +531,8 @@ class GestionProductos:
         marca = self.entries[1].get().strip()
         precio = self.entries[2].get().strip()
         stock = self.entries[3].get().strip()
-        litros = self.entries[4].get().strip()
+        stock_minimo = self.entries[4].get().strip()  # Nuevo campo
+        litros = self.entries[5].get().strip()  # Ahora es el 6to campo
         imagen_path = self.label_imagen.cget("text")
         
         # Validar campos con mensajes más específicos
@@ -484,9 +548,20 @@ class GestionProductos:
             messagebox.showerror("Error", "Debe ingresar una cantidad de stock válida")
             return
             
+        # Validar stock mínimo
+        if not stock_minimo or not stock_minimo.isdigit():
+            messagebox.showerror("Error", "Debe ingresar una cantidad de stock mínimo válida")
+            return
+            
         if not litros or not litros.replace('.', '', 1).isdigit():
             messagebox.showerror("Error", "Debe ingresar una cantidad de litros válida")
             return
+        
+        # Advertencia si el stock es menor que el stock mínimo
+        if int(stock) <= int(stock_minimo):
+            if not messagebox.askyesno("Advertencia de Stock", 
+                                     f"El stock ({stock}) es igual o menor que el stock mínimo ({stock_minimo}). ¿Desea continuar?"):
+                return
         
         # Verificar si se cambió la imagen
         if imagen_path != "No se ha seleccionado imagen" and not imagen_path.startswith("imagenes"):
@@ -503,11 +578,12 @@ class GestionProductos:
         # Actualizar producto en la base de datos
         try:
             cursor = self.conexion.cursor()
+            # Actualizado para incluir stock_minimo
             cursor.execute("""
                 UPDATE Productos 
-                SET nombre=%s, marca=%s, precio=%s, stock=%s, litros=%s, imagen=%s 
+                SET nombre=%s, marca=%s, precio=%s, stock=%s, stock_minimo=%s, litros=%s, imagen=%s 
                 WHERE id_producto=%s
-            """, (nombre, marca, precio, stock, litros, imagen_path, producto_id))
+            """, (nombre, marca, precio, stock, stock_minimo, litros, imagen_path, producto_id))
             self.conexion.commit()
             
             # Mostrar confirmación visual
@@ -519,6 +595,9 @@ class GestionProductos:
                    font=("Segoe UI", 14, "bold"), bg=COLOR_ACENTO, fg=COLOR_TEXTO_CLARO).pack(pady=(0, 15))
                    
             tk.Label(frame_confirmacion, text=f"{nombre} - {marca}",
+                   font=("Segoe UI", 12), bg=COLOR_ACENTO, fg=COLOR_TEXTO_CLARO).pack(pady=2)
+                   
+            tk.Label(frame_confirmacion, text=f"Stock: {stock} (Mínimo: {stock_minimo})",
                    font=("Segoe UI", 12), bg=COLOR_ACENTO, fg=COLOR_TEXTO_CLARO).pack(pady=2)
                    
             # Botón para cerrar la confirmación
@@ -576,10 +655,11 @@ def abrir_gestion_productos():
     
     # Conectar a la base de datos
     conexion = mysql.connector.connect(
-        host="127.0.0.1",
-        user="root",
-        password="",
-        database="gestionbebidas"
+        host="bz43xp9jaularo91fxv5-mysql.services.clever-cloud.com",
+        user="u8amhc19d0j215vh",
+        password="tnxvGHgzgV25fwhHSS6D",
+        database="bz43xp9jaularo91fxv5",
+        port=3306
     )
     
     # Inicializar gestión de productos
